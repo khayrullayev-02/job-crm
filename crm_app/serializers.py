@@ -6,29 +6,69 @@ from .models import (
     Exam, ExamResult, Room, Payroll, Notification, Contract, Lead
 )
 
-
-class UserSerializer(serializers.ModelSerializer):
-    """Basic user serializer"""
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password')
-        extra_kwargs = {'password': {'write_only': True}}
-    
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
-
-
 class UserProfileSerializer(serializers.ModelSerializer):
-    """User profile serializer with user details"""
-    user = UserSerializer(read_only=True)
-    user_id = serializers.IntegerField(write_only=True, required=False)
-    
     class Meta:
         model = UserProfile
-        fields = ('id', 'user', 'user_id', 'role', 'educational_center', 'phone', 
-                 'passport_number', 'birthday', 'image', 'is_blocked', 'created_at')
-        read_only_fields = ('created_at',)
+        fields = [
+            'role',
+            'educational_center',
+            'phone',
+            'passport_number',
+            'birthday',
+            'image',
+            'is_blocked',
+            'created_at',
+            'updated_at'
+        ]
+
+class UserSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer()
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password', 'profile')
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        profile_data = validated_data.pop('profile')   # profile ni alohida ajratamiz
+        password = validated_data.pop('password')
+
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+
+        # endi profile yaratamiz
+        UserProfile.objects.create(user=user, **profile_data)
+
+        return user
+
+# class UserSerializer(serializers.ModelSerializer):
+#     profile = UserProfileSerializer()
+#     """Basic user serializer"""
+#     class Meta:
+#         model = User
+#         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password','profile')
+#         extra_kwargs = {'password': {'write_only': True}}
+#
+#     def create(self, validated_data):
+#         user = User.objects.create_user(**validated_data)
+#         password = validated_data.pop('password')
+#         user = User(**validated_data)
+#         user.set_password(password)  # passwordni hash qiladi
+#         user.save()
+#         return user
+
+#
+# class UserProfileSerializer(serializers.ModelSerializer):
+#     """User profile serializer with user details"""
+#     user = UserSerializer(read_only=True)
+#     user_id = serializers.IntegerField(write_only=True, required=False)
+#
+#     class Meta:
+#         model = UserProfile
+#         fields = ('id', 'user', 'user_id', 'role', 'educational_center', 'phone',
+#                  'passport_number', 'birthday', 'image', 'is_blocked', 'created_at')
+#         read_only_fields = ('created_at',)
 
 
 class DirectorListSerializer(serializers.ModelSerializer):

@@ -1,6 +1,8 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
@@ -98,36 +100,72 @@ class DirectorViewSet(viewsets.ModelViewSet):
         serializer.save(user=user, role='Director')
 
 
-class LoginViewSet(viewsets.ViewSet):
-    """
-    Login API for all users.
+# class LoginViewSet(viewsets.ViewSet):
+#     """
+#     Login API for all users.
+#
+#     Authentication: AllowAny
+#
+#     ENDPOINT:
+#     - POST /api/login/ - User login with JWT token
+#
+#     Request:
+#     {
+#         "username": "director1",
+#         "password": "password123"
+#     }
+#
+#     Response:
+#     {
+#         "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+#         "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+#         "user_id": 1,
+#         "username": "director1",
+#         "role": "Director",
+#         "center_id": 1
+#     }
+#     """
+#     permission_classes = [permissions.AllowAny]
+#
+#     @action(detail=False, methods=['post'])
+#     def login(self, request):
+#         """User login endpoint"""
+#         serializer = LoginSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#
+#         user = authenticate(
+#             username=serializer.validated_data['username'],
+#             password=serializer.validated_data['password']
+#         )
+#
+#         if user is None:
+#             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+#
+#         refresh = RefreshToken.for_user(user)
+#         profile = UserProfile.objects.get(user=user)
+#
+#         center_id = None
+#         if profile.educational_center:
+#             center_id = profile.educational_center.id
+#
+#
+#         try:
+#             profile = UserProfile.objects.get(user=user)
+#         except UserProfile.DoesNotExist:
+#             profile = UserProfile.objects.create(user=user)
+#
+#         return Response({
+#             'token': str(refresh.access_token),
+#             'refresh': str(refresh),
+#             'user_id': user.id,
+#             'username': user.username,
+#             'role': profile.role,
+#             'center_id': center_id
+#         })
+class LoginAPIView(APIView):
+    permission_classes = [AllowAny]
 
-    Authentication: AllowAny
-
-    ENDPOINT:
-    - POST /api/login/ - User login with JWT token
-
-    Request:
-    {
-        "username": "director1",
-        "password": "password123"
-    }
-
-    Response:
-    {
-        "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-        "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-        "user_id": 1,
-        "username": "director1",
-        "role": "Director",
-        "center_id": 1
-    }
-    """
-    permission_classes = [permissions.AllowAny]
-
-    @action(detail=False, methods=['post'])
-    def login(self, request):
-        """User login endpoint"""
+    def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -136,23 +174,19 @@ class LoginViewSet(viewsets.ViewSet):
             password=serializer.validated_data['password']
         )
 
-        if user is None:
+        if not user:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(user)
-        profile = UserProfile.objects.get(user=user)
-
-        center_id = None
-        if profile.educational_center:
-            center_id = profile.educational_center.id
+        profile = UserProfile.objects.filter(user=user).first()
 
         return Response({
-            'token': str(refresh.access_token),
+            'access': str(refresh.access_token),
             'refresh': str(refresh),
             'user_id': user.id,
             'username': user.username,
-            'role': profile.role,
-            'center_id': center_id
+            'role': getattr(profile, 'role', None),
+            'center_id': getattr(profile.educational_center, 'id', None) if profile else None
         })
 
 
@@ -916,6 +950,13 @@ class NotificationViewSet(viewsets.ModelViewSet):
         notification.is_read = True
         notification.save()
         return Response({'status': 'Notification marked as read'})
+
+class UserViewSet(viewsets.ModelViewSet):
+    """User management"""
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
+
 
 
 class ContractViewSet(viewsets.ModelViewSet):

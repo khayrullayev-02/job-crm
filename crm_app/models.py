@@ -3,6 +3,14 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import datetime, timedelta
 
+# from rest_framework import viewsets, permissions
+
+# from crm_app.serializers import UserSerializer
+
+
+# from crm_app.serializers import UserSerializer
+
+
 class EducationalCenter(models.Model):
     """Main educational center model"""
     STATUS_CHOICES = [
@@ -111,8 +119,13 @@ class Group(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='groups')
     name = models.CharField(max_length=255)
     subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, related_name='groups')
-    teacher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name='teaching_groups', limit_choices_to={'role': 'Teacher'})
+    teacher = models.ForeignKey(
+        'Teacher',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='teaching_groups'
+    )
     capacity = models.IntegerField(default=30)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
     start_date = models.DateField()
@@ -189,6 +202,12 @@ class Teacher(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+
+    def get_queryset(self):
+        """Superuser bo'lmagan foydalanuvchilarni ko'rsatish"""
+        if self.request.user.is_superuser:
+            return User.objects.all()
+        return User.objects.filter(is_superuser=False)
 
 class Lesson(models.Model):
     """Lessons/Classes"""
