@@ -37,13 +37,9 @@ INSTALLED_APPS = [
 # ===========================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-
-    # Render uchun kerak
-    'django.middleware.sessions.middleware.SessionMiddleware',
-    
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -71,15 +67,28 @@ TEMPLATES = [
 WSGI_APPLICATION = 'crm_project.wsgi.application'
 
 # ===========================
-# DATABASE (Render PostgreSQL)
+# DATABASE
 # ===========================
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+
+# Use External Database URL for local development
+EXTERNAL_DATABASE_URL = os.getenv("DATABASE_URL")  # set this in .env for local
+
+if EXTERNAL_DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(EXTERNAL_DATABASE_URL)
+    }
+else:
+    # Use internal Render hostname when deployed on Render
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'education_crm_db',
+            'USER': 'education_crm_db_user',
+            'PASSWORD': 'CliGNzRvIXv0LNljXnobtgGu3ajWAG9F',
+            'HOST': 'dpg-d4pspo4hg0os73ftjek0-a',  # internal host
+            'PORT': '5432',
+        }
+    }
 
 # ===========================
 # PASSWORD VALIDATION
@@ -92,7 +101,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ===========================
-# LANGUAGE/TIME
+# LANGUAGE / TIME
 # ===========================
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -148,5 +157,3 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-
-DEBUG = False
