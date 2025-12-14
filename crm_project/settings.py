@@ -1,18 +1,20 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+
 import dj_database_url
 from decouple import config
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ===========================
-# SECRET KEY / DEBUG
+# SECURITY
 # ===========================
-SECRET_KEY = config("SECRET_KEY", default="django-insecure-your-secret-key-change-in-production")
+SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me")
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']  # Productionda aniq hostlarni qo'shing
+ALLOWED_HOSTS = ['*']
 
 # ===========================
 # INSTALLED APPS
@@ -26,20 +28,20 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
-    'corsheaders',
 
-    # Local apps
+    # Local
     'crm_app',
 ]
 
 # ===========================
-# MIDDLEWARE
+# MIDDLEWARE (MUHIM TARTIB)
 # ===========================
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',   # 👈 1-o‘rinda
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -51,6 +53,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'crm_project.urls'
 
+# ===========================
+# TEMPLATES
+# ===========================
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -72,12 +77,11 @@ WSGI_APPLICATION = 'crm_project.wsgi.application'
 # ===========================
 # DATABASE
 # ===========================
-# Local yoki Render Postgres uchun ishlaydi
 DATABASES = {
     'default': dj_database_url.parse(
         config(
             'DATABASE_URL',
-            default='postgres://education_crm_db_user:PASSWORD@EXTERNAL_HOST:5432/education_crm_db'
+            default='postgres://education_crm_db_user:PASSWORD@HOST:5432/education_crm_db'
         )
     )
 }
@@ -93,7 +97,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ===========================
-# LANGUAGE / TIME
+# I18N / TIME
 # ===========================
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -112,7 +116,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ===========================
-# REST Framework
+# REST FRAMEWORK
 # ===========================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -122,25 +126,26 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# ===========================
+# JWT
+# ===========================
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
 # ===========================
-# Swagger
+# SWAGGER
 # ===========================
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Educational Center CRM API',
-    'DESCRIPTION': 'Complete API for educational centers',
     'VERSION': '1.0.0',
 }
 
 # ===========================
-# CORS
+# CORS (TO‘G‘RI, ISHLAYDI)
 # ===========================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -148,6 +153,16 @@ CORS_ALLOWED_ORIGINS = [
     "https://zamaxshar-crm.onrender.com",
 ]
 
-
-CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    'authorization',
+    'content-type',
+    'accept',
+    'origin',
+    'x-csrftoken',
+]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'authorization',
+]
