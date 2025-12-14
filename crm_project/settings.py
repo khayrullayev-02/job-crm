@@ -2,14 +2,17 @@ import os
 from pathlib import Path
 from datetime import timedelta
 import dj_database_url
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-your-secret-key-change-in-production")
+# ===========================
+# SECRET KEY / DEBUG
+# ===========================
+SECRET_KEY = config("SECRET_KEY", default="django-insecure-your-secret-key-change-in-production")
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-DEBUG = os.getenv("DEBUG", "False") == "True"
-
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*']  # Productionda aniq hostlarni qo'shing
 
 # ===========================
 # INSTALLED APPS
@@ -69,26 +72,15 @@ WSGI_APPLICATION = 'crm_project.wsgi.application'
 # ===========================
 # DATABASE
 # ===========================
-
-# Use External Database URL for local development
-EXTERNAL_DATABASE_URL = os.getenv("DATABASE_URL")  # set this in .env for local
-
-if EXTERNAL_DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(EXTERNAL_DATABASE_URL)
-    }
-else:
-    # Use internal Render hostname when deployed on Render
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'education_crm_db',
-            'USER': 'education_crm_db_user',
-            'PASSWORD': 'CliGNzRvIXv0LNljXnobtgGu3ajWAG9F',
-            'HOST': 'dpg-d4pspo4hg0os73ftjek0-a',  # internal host
-            'PORT': '5432',
-        }
-    }
+# Local yoki Render Postgres uchun ishlaydi
+DATABASES = {
+    'default': dj_database_url.parse(
+        config(
+            'DATABASE_URL',
+            default='postgres://education_crm_db_user:PASSWORD@EXTERNAL_HOST:5432/education_crm_db'
+        )
+    )
+}
 
 # ===========================
 # PASSWORD VALIDATION
@@ -154,6 +146,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:8000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
