@@ -1,20 +1,26 @@
 import os
 from pathlib import Path
 from datetime import timedelta
-
 import dj_database_url
 from decouple import config
 from corsheaders.defaults import default_headers
 
+# ===========================
+# BASE DIR
+# ===========================
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ===========================
-# SECURITY
+# SECRET KEY / DEBUG
 # ===========================
-SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me")
+SECRET_KEY = config(
+    "SECRET_KEY",
+    default="django-insecure-change-this-in-production"
+)
+
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]  # Prod’da real domain yozing
 
 # ===========================
 # INSTALLED APPS
@@ -28,23 +34,23 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party
-    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
+    'corsheaders',
 
-    # Local
+    # Local apps
     'crm_app',
 ]
 
 # ===========================
-# MIDDLEWARE (MUHIM TARTIB)
+# MIDDLEWARE
 # ===========================
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',   # 👈 1-o‘rinda
-    'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',   # 👈 HAR DOIM 1-O‘RINDA
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -81,7 +87,7 @@ DATABASES = {
     'default': dj_database_url.parse(
         config(
             'DATABASE_URL',
-            default='postgres://education_crm_db_user:PASSWORD@HOST:5432/education_crm_db'
+            default='postgres://username:password@localhost:5432/dbname'
         )
     )
 }
@@ -97,10 +103,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ===========================
-# I18N / TIME
+# LANGUAGE / TIME
 # ===========================
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tashkent'
 USE_I18N = True
 USE_TZ = True
 
@@ -116,36 +122,39 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ===========================
-# REST FRAMEWORK
+# DJANGO REST FRAMEWORK
 # ===========================
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    ],
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # ===========================
-# JWT
+# SIMPLE JWT
 # ===========================
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 # ===========================
-# SWAGGER
+# SWAGGER / SPECTACULAR
 # ===========================
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Educational Center CRM API',
+    'DESCRIPTION': 'Complete API for educational centers',
     'VERSION': '1.0.0',
 }
 
 # ===========================
-# CORS (TO‘G‘RI, ISHLAYDI)
+# CORS
 # ===========================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -154,15 +163,4 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_HEADERS = [
-    'authorization',
-    'content-type',
-    'accept',
-    'origin',
-    'x-csrftoken',
-]
-
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    'authorization',
-]
+CORS_ALLOW_HEADERS = list(default_headers) + ['x-csrftoken']
