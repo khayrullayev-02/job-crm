@@ -83,14 +83,27 @@ WSGI_APPLICATION = 'crm_project.wsgi.application'
 # ===========================
 # DATABASE
 # ===========================
+# DATABASES = {
+#     'default': dj_database_url.parse(
+#         config(
+#             'DATABASE_URL',
+#             default='postgres://username:password@localhost:5432/dbname'
+#         )
+#     )
+# }
+
+
 DATABASES = {
-    'default': dj_database_url.parse(
-        config(
-            'DATABASE_URL',
-            default='postgres://username:password@localhost:5432/dbname'
-        )
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'education_crm_db',
+        'USER': 'education_crm_db_user',
+        'PASSWORD': 'CliGNzRvIXv0LNljXnobtgGu3ajWAG9F',
+        'HOST': 'dpg-d4pspo4hg0os73ftjek0-a.oregon-postgres.render.com',  # External host
+        'PORT': '5432',
+    }
 }
+
 
 # ===========================
 # PASSWORD VALIDATION
