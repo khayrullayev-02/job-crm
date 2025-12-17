@@ -129,8 +129,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     # 🔐 Authentication
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',  # Browsable API uchun
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # JWT orqali auth
+        # 'rest_framework.authentication.SessionAuthentication',  # Browsable API uchun kerak bo'lsa izohga olish mumkin
     ),
 
     # 🔒 Permission (xohlasang keyin IsAuthenticated qilasan)
