@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from datetime import timedelta
-import dj_database_url
+
 from decouple import config
 from corsheaders.defaults import default_headers
 
@@ -18,9 +18,12 @@ SECRET_KEY = config(
     default="django-insecure-change-this-in-production"
 )
 
-DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = True
 
-ALLOWED_HOSTS = ["*"]  # Prod’da real domain yozing
+
+# DEBUG = config("DEBUG", default=False, cast=bool)
+
+ALLOWED_HOSTS = ["*"]  # prod’da real domain yoziladi
 
 # ===========================
 # INSTALLED APPS
@@ -47,7 +50,7 @@ INSTALLED_APPS = [
 # MIDDLEWARE
 # ===========================
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',   # 👈 HAR DOIM 1-O‘RINDA
+    'corsheaders.middleware.CorsMiddleware',  # 👈 DOIM BIRINCHI
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -83,27 +86,13 @@ WSGI_APPLICATION = 'crm_project.wsgi.application'
 # ===========================
 # DATABASE
 # ===========================
-# DATABASES = {
-#     'default': dj_database_url.parse(
-#         config(
-#             'DATABASE_URL',
-#             default='postgres://username:password@localhost:5432/dbname'
-#         )
-#     )
-# }
-
+import dj_database_url
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'education_crm_db',
-        'USER': 'education_crm_db_user',
-        'PASSWORD': 'CliGNzRvIXv0LNljXnobtgGu3ajWAG9F',
-        'HOST': 'dpg-d4pspo4hg0os73ftjek0-a.oregon-postgres.render.com',  # External host
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default='postgresql://my_user:M6u4ACHpCFB2nDqGWGh900P7YBSLyvyW@dpg-d51d7v2li9vc73b2argg-a.oregon-postgres.render.com:5432/my_test_edu_db'
+    )
 }
-
 
 # ===========================
 # PASSWORD VALIDATION
@@ -143,7 +132,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
@@ -178,7 +167,6 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + ['x-csrftoken']
 
-# settings.py fayliga qo'shing
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",

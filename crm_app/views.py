@@ -1111,7 +1111,8 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]  # productionda shu ishlatilsin
+    # permission_classes = [permissions.IsAuthenticated]  # productionda shu ishlatilsin
+    permission_classes = [permissions.AllowAny]  # productionda shu ishlatilsin
 
     @action(detail=True, methods=['post'])
     def block(self, request, pk=None):
