@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     EducationalCenter, UserProfile, Branch, Subject, Group, Student,
     Teacher, Lesson, Attendance, Payment, Assignment, AssignmentSubmission,
@@ -91,7 +93,7 @@ class TeacherAdmin(admin.ModelAdmin):
 class LessonAdmin(admin.ModelAdmin):
     list_display = ('group', 'teacher', 'date', 'is_cancelled')
     list_filter = ('is_cancelled', 'date')
-    search_fields = ('group__name', 'teacher__user__username')  # qo‘shildi
+    search_fields = ('group__name', 'teacher__user__username')
     autocomplete_fields = ('group', 'teacher')
 
 
@@ -207,12 +209,9 @@ class LeadAdmin(admin.ModelAdmin):
     search_fields = ('name', 'phone')
 
 
-from django.contrib import admin
-from django.contrib.auth.models import User
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import UserProfile, EducationalCenter
-
-# Inline UserProfile
+# ----------------------------
+# Custom User Admin
+# ----------------------------
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
@@ -221,18 +220,27 @@ class UserProfileInline(admin.StackedInline):
     fields = ('role', 'educational_center', 'phone', 'passport_number', 'birthday', 'image', 'is_blocked')
     readonly_fields = ('created_at', 'updated_at')
 
-# Custom UserAdmin
+
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
     list_display = ('username', 'email', 'first_name', 'last_name', 'get_role', 'get_center', 'is_staff', 'is_active')
     list_select_related = ('profile',)
     search_fields = ('username', 'email', 'first_name', 'last_name', 'profile__passport_number')
 
+    # Show first_name, last_name, email in admin detail
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
+
+    # Show first_name, last_name, email in "Add user" page
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'first_name', 'last_name', 'email', 'password1', 'password2'),
+        }),
     )
 
     def get_role(self, obj):
@@ -242,6 +250,7 @@ class UserAdmin(BaseUserAdmin):
     def get_center(self, obj):
         return obj.profile.educational_center if hasattr(obj, 'profile') else ''
     get_center.short_description = 'Educational Center'
+
 
 # Unregister default User and register custom
 admin.site.unregister(User)
