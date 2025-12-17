@@ -100,94 +100,75 @@ class DirectorViewSet(viewsets.ModelViewSet):
         serializer.save(user=user, role='Director')
 
 
-# class LoginViewSet(viewsets.ViewSet):
-#     """
-#     Login API for all users.
-#
-#     Authentication: AllowAny
-#
-#     ENDPOINT:
-#     - POST /api/login/ - User login with JWT token
-#
-#     Request:
-#     {
-#         "username": "director1",
-#         "password": "password123"
-#     }
-#
-#     Response:
-#     {
-#         "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-#         "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-#         "user_id": 1,
-#         "username": "director1",
-#         "role": "Director",
-#         "center_id": 1
-#     }
-#     """
-#     permission_classes = [permissions.AllowAny]
-#
-#     @action(detail=False, methods=['post'])
-#     def login(self, request):
-#         """User login endpoint"""
+# class LoginAPIView(APIView):
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
 #         serializer = LoginSerializer(data=request.data)
 #         serializer.is_valid(raise_exception=True)
-#
+
 #         user = authenticate(
 #             username=serializer.validated_data['username'],
 #             password=serializer.validated_data['password']
 #         )
-#
-#         if user is None:
+
+#         if not user:
 #             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-#
+
 #         refresh = RefreshToken.for_user(user)
-#         profile = UserProfile.objects.get(user=user)
-#
-#         center_id = None
-#         if profile.educational_center:
-#             center_id = profile.educational_center.id
-#
-#
-#         try:
-#             profile = UserProfile.objects.get(user=user)
-#         except UserProfile.DoesNotExist:
-#             profile = UserProfile.objects.create(user=user)
-#
+#         profile = UserProfile.objects.filter(user=user).first()
+
 #         return Response({
-#             'token': str(refresh.access_token),
+#             'access': str(refresh.access_token),
 #             'refresh': str(refresh),
 #             'user_id': user.id,
 #             'username': user.username,
-#             'role': profile.role,
-#             'center_id': center_id
+#             'role': getattr(profile, 'role', None),
+#             'center_id': getattr(profile.educational_center, 'id', None) if profile else None
 #         })
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import LoginSerializer
+from .models import UserProfile
+
 class LoginAPIView(APIView):
-    permission_classes = [AllowAny]
+    """
+    Login API for obtaining JWT token.
+    POST: { "username": "user", "password": "pass" }
+    """
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
 
-        user = authenticate(
-            username=serializer.validated_data['username'],
-            password=serializer.validated_data['password']
-        )
-
-        if not user:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
+        # JWT token yaratish
         refresh = RefreshToken.for_user(user)
-        profile = UserProfile.objects.filter(user=user).first()
+        access_token = str(refresh.access_token)
+
+        # Foydalanuvchi roli
+        try:
+            profile = user.userprofile  # OneToOneField orqali UserProfile
+            role = profile.role
+        except:
+            role = "NoRole"
 
         return Response({
-            'access': str(refresh.access_token),
+            'access': access_token,
             'refresh': str(refresh),
-            'user_id': user.id,
             'username': user.username,
-            'role': getattr(profile, 'role', None),
-            'center_id': getattr(profile.educational_center, 'id', None) if profile else None
-        })
+            'role': role
+        }, status=status.HTTP_200_OK)
+
+
+
+
 
 
 # DIRECTOR VIEWS
@@ -350,11 +331,88 @@ class GroupViewSet(viewsets.ModelViewSet):
         return {'total_payments': total, 'payment_count': payments.count()}
 
 
+# class StudentViewSet(viewsets.ModelViewSet):
+#     """
+#     Director/Manager/Admin API for managing students.
+
+#     Authentication: IsAuthenticated
+
+#     ENDPOINTS:
+#     - GET /api/students/ - List all students
+#     - POST /api/students/ - Create new student
+#     - GET /api/students/{id}/ - Retrieve student
+#     - PUT /api/students/{id}/ - Update student
+#     - PATCH /api/students/{id}/ - Partial update
+#     - DELETE /api/students/{id}/ - Delete student
+#     - POST /api/students/{id}/block/ - Block student
+#     - POST /api/students/{id}/assign-group/ - Assign student to group
+#     - GET /api/students/{id}/attendance-history/ - Get attendance history
+#     - GET /api/students/{id}/payment-history/ - Get payment history
+#     """
+#     queryset = Student.objects.all()
+#     serializer_class = StudentSerializer
+#     # PRODUCTION: Uncomment line below and comment AllowAny line
+#     # permission_classes = [permissions.IsAuthenticated]
+#     permission_classes = [permissions.AllowAny]
+
+#     def get_queryset(self):
+#         """Filter students by user's center/branch"""
+#         user = self.request.user
+#         if user.is_authenticated:
+#             try:
+#                 profile = UserProfile.objects.get(user=user)
+#                 if profile.role == 'SuperAdmin':
+#                     return Student.objects.all()
+#                 elif profile.role in ['Director', 'Manager']:
+#                     return Student.objects.filter(branch__educational_center=profile.educational_center)
+#                 return Student.objects.filter(user=user)
+#             except UserProfile.DoesNotExist:
+#                 return Student.objects.all()
+#         return Student.objects.all()
+
+#     @action(detail=True, methods=['post'])
+#     def block(self, request, pk=None):
+#         """Block student"""
+#         student = self.get_object()
+#         student.status = 'Blocked'
+#         student.save()
+#         return Response({'status': 'Student blocked'})
+
+#     @action(detail=True, methods=['post'])
+#     def assign_group(self, request, pk=None):
+#         """Assign student to group"""
+#         student = self.get_object()
+#         group_id = request.data.get('group_id')
+#         try:
+#             group = Group.objects.get(id=group_id)
+#             student.group = group
+#             student.save()
+#             return Response({'status': 'Student assigned to group'})
+#         except Group.DoesNotExist:
+#             return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
+
+#     @action(detail=True, methods=['get'])
+#     def attendance_history(self, request, pk=None):
+#         """Get student attendance history"""
+#         student = self.get_object()
+#         attendances = Attendance.objects.filter(student=student).values('status').annotate(count=Count('id'))
+#         return Response(list(attendances))
+
+#     @action(detail=True, methods=['get'])
+#     def payment_history(self, request, pk=None):
+#         """Get student payment history"""
+#         student = self.get_object()
+#         payments = Payment.objects.filter(student=student)
+#         serializer = PaymentSerializer(payments, many=True)
+#         return Response(serializer.data)
+
+
+
+
+
 class StudentViewSet(viewsets.ModelViewSet):
     """
-    Director/Manager/Admin API for managing students.
-
-    Authentication: IsAuthenticated
+    API for managing students.
 
     ENDPOINTS:
     - GET /api/students/ - List all students
@@ -368,26 +426,10 @@ class StudentViewSet(viewsets.ModelViewSet):
     - GET /api/students/{id}/attendance-history/ - Get attendance history
     - GET /api/students/{id}/payment-history/ - Get payment history
     """
+
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    # PRODUCTION: Uncomment line below and comment AllowAny line
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        """Filter students by user's center/branch"""
-        user = self.request.user
-        if user.is_authenticated:
-            try:
-                profile = UserProfile.objects.get(user=user)
-                if profile.role == 'SuperAdmin':
-                    return Student.objects.all()
-                elif profile.role in ['Director', 'Manager']:
-                    return Student.objects.filter(branch__educational_center=profile.educational_center)
-                return Student.objects.filter(user=user)
-            except UserProfile.DoesNotExist:
-                return Student.objects.all()
-        return Student.objects.all()
+    permission_classes = [permissions.AllowAny]  # productionda IsAuthenticated qilinadi
 
     @action(detail=True, methods=['post'])
     def block(self, request, pk=None):
@@ -402,11 +444,13 @@ class StudentViewSet(viewsets.ModelViewSet):
         """Assign student to group"""
         student = self.get_object()
         group_id = request.data.get('group_id')
+        if not group_id:
+            return Response({'error': 'group_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             group = Group.objects.get(id=group_id)
             student.group = group
             student.save()
-            return Response({'status': 'Student assigned to group'})
+            return Response({'status': f'Student assigned to group {group.name}'})
         except Group.DoesNotExist:
             return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -414,8 +458,10 @@ class StudentViewSet(viewsets.ModelViewSet):
     def attendance_history(self, request, pk=None):
         """Get student attendance history"""
         student = self.get_object()
-        attendances = Attendance.objects.filter(student=student).values('status').annotate(count=Count('id'))
-        return Response(list(attendances))
+        attendances = Attendance.objects.filter(student=student).values('is_present').annotate(count=Count('id'))
+        # Formatlash
+        history = [{'present': a['is_present'], 'count': a['count']} for a in attendances]
+        return Response(history)
 
     @action(detail=True, methods=['get'])
     def payment_history(self, request, pk=None):
@@ -426,28 +472,98 @@ class StudentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+
+
+
+# class TeacherViewSet(viewsets.ModelViewSet):
+#     """
+#     Director/Manager API for managing teachers.
+
+#     Authentication: IsAuthenticated
+
+#     ENDPOINTS:
+#     - GET /api/teachers/ - List all teachers
+#     - POST /api/teachers/ - Create new teacher
+#     - GET /api/teachers/{id}/ - Retrieve teacher
+#     - PUT /api/teachers/{id}/ - Update teacher
+#     - PATCH /api/teachers/{id}/ - Partial update
+#     - DELETE /api/teachers/{id}/ - Delete teacher
+#     - POST /api/teachers/{id}/rate/ - Rate teacher performance
+#     - GET /api/teachers/{id}/schedule/ - Get teacher schedule
+#     - GET /api/teachers/{id}/performance/ - Get performance metrics
+#     """
+#     queryset = Teacher.objects.all()
+#     serializer_class = TeacherSerializer
+#     # PRODUCTION: Uncomment line below and comment AllowAny line
+#     # permission_classes = [permissions.IsAuthenticated]
+#     permission_classes = [permissions.AllowAny]
+
+#     def get_queryset(self):
+#         """Filter teachers by user's center"""
+#         user = self.request.user
+#         if user.is_authenticated:
+#             try:
+#                 profile = UserProfile.objects.get(user=user)
+#                 if profile.role == 'SuperAdmin':
+#                     return Teacher.objects.all()
+#                 return Teacher.objects.filter(branch__educational_center=profile.educational_center)
+#             except UserProfile.DoesNotExist:
+#                 return Teacher.objects.all()
+#         return Teacher.objects.all()
+
+#     @action(detail=True, methods=['post'])
+#     def rate(self, request, pk=None):
+#         """Rate teacher performance"""
+#         teacher = self.get_object()
+#         rating = request.data.get('rating', 0)
+#         if 0 <= float(rating) <= 5:
+#             teacher.performance_rating = rating
+#             teacher.save()
+#             return Response({'status': 'Teacher rated', 'rating': rating})
+#         return Response({'error': 'Invalid rating'}, status=status.HTTP_400_BAD_REQUEST)
+
+#     @action(detail=True, methods=['get'])
+#     def schedule(self, request, pk=None):
+#         """Get teacher schedule"""
+#         teacher = self.get_object()
+#         lessons = Lesson.objects.filter(teacher=teacher).order_by('date', 'start_time')
+#         serializer = LessonSerializer(lessons, many=True)
+#         return Response(serializer.data)
+
+#     @action(detail=True, methods=['get'])
+#     def performance(self, request, pk=None):
+#         """Get teacher performance metrics"""
+#         teacher = self.get_object()
+#         lessons = teacher.lessons.count()
+#         attendances = Attendance.objects.filter(marked_by=teacher)
+#         assignments = teacher.assignments.count()
+#         exams = teacher.exams.count()
+
+#         return Response({
+#             'lessons_count': lessons,
+#             'attendances_marked': attendances.count(),
+#             'assignments_given': assignments,
+#             'exams_conducted': exams,
+#             'performance_rating': teacher.performance_rating
+#         })
+
+
+
+
+
+from rest_framework import viewsets, status, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Teacher, UserProfile, Lesson, Attendance
+from .serializers import TeacherSerializer, LessonSerializer
+
 class TeacherViewSet(viewsets.ModelViewSet):
     """
     Director/Manager API for managing teachers.
-
-    Authentication: IsAuthenticated
-
-    ENDPOINTS:
-    - GET /api/teachers/ - List all teachers
-    - POST /api/teachers/ - Create new teacher
-    - GET /api/teachers/{id}/ - Retrieve teacher
-    - PUT /api/teachers/{id}/ - Update teacher
-    - PATCH /api/teachers/{id}/ - Partial update
-    - DELETE /api/teachers/{id}/ - Delete teacher
-    - POST /api/teachers/{id}/rate/ - Rate teacher performance
-    - GET /api/teachers/{id}/schedule/ - Get teacher schedule
-    - GET /api/teachers/{id}/performance/ - Get performance metrics
     """
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
-    # PRODUCTION: Uncomment line below and comment AllowAny line
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny]  # PRODUCTION: IsAuthenticated
 
     def get_queryset(self):
         """Filter teachers by user's center"""
@@ -462,16 +578,27 @@ class TeacherViewSet(viewsets.ModelViewSet):
                 return Teacher.objects.all()
         return Teacher.objects.all()
 
+    def create(self, request, *args, **kwargs):
+        """Create a new teacher and ensure DB save"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['post'])
     def rate(self, request, pk=None):
         """Rate teacher performance"""
         teacher = self.get_object()
-        rating = request.data.get('rating', 0)
-        if 0 <= float(rating) <= 5:
+        try:
+            rating = float(request.data.get('rating', 0))
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid rating'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 0 <= rating <= 5:
             teacher.performance_rating = rating
             teacher.save()
             return Response({'status': 'Teacher rated', 'rating': rating})
-        return Response({'error': 'Invalid rating'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Rating must be between 0 and 5'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def schedule(self, request, pk=None):
@@ -485,18 +612,22 @@ class TeacherViewSet(viewsets.ModelViewSet):
     def performance(self, request, pk=None):
         """Get teacher performance metrics"""
         teacher = self.get_object()
-        lessons = teacher.lessons.count()
-        attendances = Attendance.objects.filter(marked_by=teacher)
-        assignments = teacher.assignments.count()
-        exams = teacher.exams.count()
+        lessons_count = teacher.lessons.count()
+        attendances_count = Attendance.objects.filter(marked_by=teacher).count()
+        assignments_count = teacher.assignments.count()
+        exams_count = teacher.exams.count()
 
         return Response({
-            'lessons_count': lessons,
-            'attendances_marked': attendances.count(),
-            'assignments_given': assignments,
-            'exams_conducted': exams,
+            'lessons_count': lessons_count,
+            'attendances_marked': attendances_count,
+            'assignments_given': assignments_count,
+            'exams_conducted': exams_count,
             'performance_rating': teacher.performance_rating
         })
+
+
+
+
 
 
 class LessonViewSet(viewsets.ModelViewSet):
@@ -951,11 +1082,102 @@ class NotificationViewSet(viewsets.ModelViewSet):
         notification.save()
         return Response({'status': 'Notification marked as read'})
 
+# class UserViewSet(viewsets.ModelViewSet):
+#     """User management"""
+#     queryset = User.objects.all().order_by('-date_joined')
+#     serializer_class = UserSerializer
+#     permission_classes = [permissions.AllowAny]
+
+
+
+
+
+from rest_framework import viewsets, status, permissions
+from rest_framework.response import Response
+from rest_framework.decorators import action, api_view, permission_classes
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from .models import UserProfile
+from .serializers import UserSerializer, UserProfileSerializer
+
+# =========================
+# UserViewSet - CRUD
+# =========================
 class UserViewSet(viewsets.ModelViewSet):
-    """User management"""
+    """
+    User management (CRUD)
+    """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]  # productionda shu ishlatilsin
+
+    @action(detail=True, methods=['post'])
+    def block(self, request, pk=None):
+        """Block user"""
+        user = self.get_object()
+        profile = getattr(user, 'profile', None)
+        if profile:
+            profile.is_blocked = True
+            profile.save()
+            return Response({'status': 'User blocked'})
+        return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def unblock(self, request, pk=None):
+        """Unblock user"""
+        user = self.get_object()
+        profile = getattr(user, 'profile', None)
+        if profile:
+            profile.is_blocked = False
+            profile.save()
+            return Response({'status': 'User unblocked'})
+        return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# =========================
+# Login API
+# =========================
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def login_api(request):
+    """
+    Login API for JWT token.
+    POST data: {"username": "user", "password": "pass"}
+    Returns: access token, refresh token, role
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    if not username or not password:
+        return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(username=username, password=password)
+    if not user:
+        return Response({'error': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # JWT token yaratish
+    refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
+
+    # Foydalanuvchi roli
+    try:
+        profile = user.profile
+        role = profile.role
+    except UserProfile.DoesNotExist:
+        role = None
+
+    return Response({
+        'access': access_token,
+        'refresh': str(refresh),
+        'username': user.username,
+        'role': role
+    }, status=status.HTTP_200_OK)
+
+
+
+
 
 
 

@@ -141,35 +141,78 @@ class Group(models.Model):
         unique_together = ('branch', 'name')
 
 
+# class Student(models.Model):
+#     """Student model"""
+#     STATUS_CHOICES = [
+#         ('Active', 'Active'),
+#         ('Inactive', 'Inactive'),
+#         ('Blocked', 'Blocked'),
+#     ]
+    
+    
+#     group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
+#     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='students')
+#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
+#     enrollment_date = models.DateField(auto_now_add=True)
+#     phone = models.CharField(max_length=20, blank=True)
+#     date_of_birth = models.DateField(null=True, blank=True)
+#     parent_name = models.CharField(max_length=255, blank=True)
+#     parent_phone = models.CharField(max_length=20, blank=True)
+#     parent_email = models.EmailField(blank=True)
+#     address = models.TextField(blank=True)
+#     passport_number = models.CharField(max_length=20, blank=True, unique=True)
+#     image = models.ImageField(upload_to='students/', null=True, blank=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+    
+#     def __str__(self):
+#         return f"{self.user.get_full_name()} - {self.group}"
+    
+#     class Meta:
+#         ordering = ['-created_at']
+
+
+
+
 class Student(models.Model):
-    """Student model"""
     STATUS_CHOICES = [
         ('Active', 'Active'),
         ('Inactive', 'Inactive'),
         ('Blocked', 'Blocked'),
     ]
     
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student')
-    group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='students')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
-    enrollment_date = models.DateField(auto_now_add=True)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    enrollment_date = models.DateField(auto_now_add=True)  # Markazga kelgan sanasi
+    address = models.TextField(blank=True)
+    
     parent_name = models.CharField(max_length=255, blank=True)
     parent_phone = models.CharField(max_length=20, blank=True)
     parent_email = models.EmailField(blank=True)
-    address = models.TextField(blank=True)
+    
+    group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
+
+    # group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='students')
+    
     passport_number = models.CharField(max_length=20, blank=True, unique=True)
     image = models.ImageField(upload_to='students/', null=True, blank=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.group}"
+        return f"{self.first_name} {self.last_name} - {self.group.name if self.group else 'No Group'}"
     
     class Meta:
         ordering = ['-created_at']
+
+
+
 
 
 class Teacher(models.Model):

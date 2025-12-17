@@ -6,6 +6,51 @@ from .models import (
     Exam, ExamResult, Room, Payroll, Notification, Contract, Lead
 )
 
+# class UserProfileSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = UserProfile
+#         fields = [
+#             'role',
+#             'educational_center',
+#             'phone',
+#             'passport_number',
+#             'birthday',
+#             'image',
+#             'is_blocked',
+#             'created_at',
+#             'updated_at'
+#         ]
+
+# class UserSerializer(serializers.ModelSerializer):
+#     profile = UserProfileSerializer()
+    
+
+#     class Meta:
+#         model = User
+#         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password', 'profile')
+#         extra_kwargs = {'password': {'write_only': True}}
+
+#     def create(self, validated_data):
+#         profile_data = validated_data.pop('profile')   # profile ni alohida ajratamiz
+#         password = validated_data.pop('password')
+
+#         user = User(**validated_data)
+#         user.set_password(password)
+#         user.save()
+
+#         # endi profile yaratamiz
+#         UserProfile.objects.create(user=user, **profile_data)
+
+#         return user
+
+
+
+
+
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from .models import UserProfile, EducationalCenter
+
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
@@ -20,55 +65,76 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
+        read_only_fields = ('created_at', 'updated_at')
+
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password', 'profile')
+        fields = (
+            'id', 
+            'username', 
+            'email', 
+            'first_name', 
+            'last_name', 
+            'password', 
+            'profile'
+        )
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        profile_data = validated_data.pop('profile')   # profile ni alohida ajratamiz
-        password = validated_data.pop('password')
+        # profile data ni ajratib olish
+        profile_data = validated_data.pop('profile', None)
+        password = validated_data.pop('password', None)
 
+        # user yaratish
         user = User(**validated_data)
-        user.set_password(password)
+        if password:
+            user.set_password(password)
         user.save()
 
-        # endi profile yaratamiz
-        UserProfile.objects.create(user=user, **profile_data)
+        # profil yaratish
+        if profile_data:
+            UserProfile.objects.create(user=user, **profile_data)
 
         return user
 
-# class UserSerializer(serializers.ModelSerializer):
-#     profile = UserProfileSerializer()
-#     """Basic user serializer"""
-#     class Meta:
-#         model = User
-#         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password','profile')
-#         extra_kwargs = {'password': {'write_only': True}}
-#
-#     def create(self, validated_data):
-#         user = User.objects.create_user(**validated_data)
-#         password = validated_data.pop('password')
-#         user = User(**validated_data)
-#         user.set_password(password)  # passwordni hash qiladi
-#         user.save()
-#         return user
+    def update(self, instance, validated_data):
+        """
+        User va UserProfile update qilish uchun
+        """
+        profile_data = validated_data.pop('profile', None)
+        password = validated_data.pop('password', None)
 
-#
-# class UserProfileSerializer(serializers.ModelSerializer):
-#     """User profile serializer with user details"""
-#     user = UserSerializer(read_only=True)
-#     user_id = serializers.IntegerField(write_only=True, required=False)
-#
-#     class Meta:
-#         model = UserProfile
-#         fields = ('id', 'user', 'user_id', 'role', 'educational_center', 'phone',
-#                  'passport_number', 'birthday', 'image', 'is_blocked', 'created_at')
-#         read_only_fields = ('created_at',)
+        # User ma'lumotlarini yangilash
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+
+        # Profile ma'lumotlarini yangilash
+        if profile_data:
+            profile = getattr(instance, 'profile', None)
+            if profile:
+                for attr, value in profile_data.items():
+                    setattr(profile, attr, value)
+                profile.save()
+            else:
+                # agar profile mavjud bo'lmasa, yaratish
+                UserProfile.objects.create(user=instance, **profile_data)
+
+        return instance
+
+
+
+
+
+
 
 
 class DirectorListSerializer(serializers.ModelSerializer):
@@ -154,18 +220,35 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     """Student serializer"""
-    user_info = UserSerializer(source='user', read_only=True)
+    
+    # O'quvchining guruh nomi va filial nomini read-only sifatida ko'rsatish
     group_name = serializers.CharField(source='group.name', read_only=True)
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     
     class Meta:
         model = Student
-        fields = ('id', 'user', 'user_info', 'group', 'group_name', 'branch', 'branch_name',
-                 'status', 'enrollment_date', 'phone', 'date_of_birth', 'parent_name', 
-                 'parent_phone', 'parent_email', 'address', 'passport_number', 'image',
-                 'created_at', 'updated_at')
+        fields = (
+            'id',
+            'first_name',
+            'last_name',
+            'group',
+            'group_name',
+            'branch',
+            'branch_name',
+            'status',
+            'enrollment_date',
+            'phone',
+            'date_of_birth',
+            'parent_name',
+            'parent_phone',
+            'parent_email',
+            'address',
+            'passport_number',
+            'image',
+            'created_at',
+            'updated_at',
+        )
         read_only_fields = ('enrollment_date', 'created_at', 'updated_at')
-
 
 class TeacherSerializer(serializers.ModelSerializer):
     """Teacher serializer"""
@@ -344,7 +427,33 @@ class LeadSerializer(serializers.ModelSerializer):
         read_only_fields = ('created_at', 'updated_at')
 
 
+# class LoginSerializer(serializers.Serializer):
+#     """Login serializer"""
+#     username = serializers.CharField()
+#     password = serializers.CharField(write_only=True)
+
+
+
+
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+
 class LoginSerializer(serializers.Serializer):
-    """Login serializer"""
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        username = data.get('username')
+        password = data.get('password')
+
+        if username and password:
+            user = authenticate(username=username, password=password)
+            if user is None:
+                raise serializers.ValidationError("Invalid username or password")
+            if not user.is_active:
+                raise serializers.ValidationError("User is inactive")
+            data['user'] = user
+            return data
+        else:
+            raise serializers.ValidationError("Username and password are required")
