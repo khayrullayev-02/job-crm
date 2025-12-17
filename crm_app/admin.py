@@ -205,3 +205,34 @@ class LeadAdmin(admin.ModelAdmin):
     list_display = ('name', 'phone', 'status', 'source')
     list_filter = ('status', 'source')
     search_fields = ('name', 'phone')
+
+
+from django.contrib import admin
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from .models import UserProfile
+
+# Inline UserProfile for User
+class UserProfileInline(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+    verbose_name_plural = 'Profile'
+    fk_name = 'user'
+
+# Custom UserAdmin
+class UserAdmin(BaseUserAdmin):
+    inlines = (UserProfileInline,)
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'get_role', 'get_center')
+    list_select_related = ('profile',)
+
+    def get_role(self, instance):
+        return instance.profile.role if hasattr(instance, 'profile') else ''
+    get_role.short_description = 'Role'
+
+    def get_center(self, instance):
+        return instance.profile.educational_center if hasattr(instance, 'profile') else ''
+    get_center.short_description = 'Educational Center'
+
+# Unregister default User and register custom
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
