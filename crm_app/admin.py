@@ -210,27 +210,37 @@ class LeadAdmin(admin.ModelAdmin):
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import UserProfile
+from .models import UserProfile, EducationalCenter
 
-# Inline UserProfile for User
+# Inline UserProfile
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Profile'
     fk_name = 'user'
+    fields = ('role', 'educational_center', 'phone', 'passport_number', 'birthday', 'image', 'is_blocked')
+    readonly_fields = ('created_at', 'updated_at')
 
 # Custom UserAdmin
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'get_role', 'get_center')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'get_role', 'get_center', 'is_staff', 'is_active')
     list_select_related = ('profile',)
+    search_fields = ('username', 'email', 'first_name', 'last_name', 'profile__passport_number')
 
-    def get_role(self, instance):
-        return instance.profile.role if hasattr(instance, 'profile') else ''
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
+
+    def get_role(self, obj):
+        return obj.profile.role if hasattr(obj, 'profile') else ''
     get_role.short_description = 'Role'
 
-    def get_center(self, instance):
-        return instance.profile.educational_center if hasattr(instance, 'profile') else ''
+    def get_center(self, obj):
+        return obj.profile.educational_center if hasattr(obj, 'profile') else ''
     get_center.short_description = 'Educational Center'
 
 # Unregister default User and register custom
