@@ -174,6 +174,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://zamaxshar-crm.onrender.com",
+    "https://www.zamaxsharlc-crm.uz", 
+    "https://zamaxsharlc-crm.uz",  
 ]
 
 CORS_ALLOW_CREDENTIALS = True
