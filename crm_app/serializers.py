@@ -201,21 +201,33 @@ class SubjectSerializer(serializers.ModelSerializer):
 
 
 class GroupSerializer(serializers.ModelSerializer):
-    """Group serializer"""
-    teacher_name = serializers.CharField(source='teacher.user.get_full_name', read_only=True)
-    subject_name = serializers.CharField(source='subject.name', read_only=True)
     branch_name = serializers.CharField(source='branch.name', read_only=True)
-    students_count = serializers.SerializerMethodField()
-    
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.user.get_full_name', read_only=True)
+    room_name = serializers.CharField(source='room.name', read_only=True)
+
     class Meta:
         model = Group
-        fields = ('id', 'educational_center', 'branch', 'branch_name', 'name', 'subject',
-                 'subject_name', 'teacher', 'teacher_name', 'capacity', 'status',
-                 'start_date', 'end_date', 'students_count', 'created_at', 'updated_at')
-        read_only_fields = ('created_at', 'updated_at')
-    
-    def get_students_count(self, obj):
-        return obj.students.count()
+        fields = (
+            'id',
+            'educational_center',
+            'branch',
+            'branch_name',
+            'room',          # 🔥
+            'room_name',     # 🔥
+            'name',
+            'subject',
+            'subject_name',
+            'teacher',
+            'teacher_name',
+            'capacity',
+            'status',
+            'start_date',
+            'end_date',
+            'created_at',
+            'updated_at'
+        )
+        read_only_fields = ('educational_center', 'created_at', 'updated_at')
 
 
 class StudentSerializer(serializers.ModelSerializer):

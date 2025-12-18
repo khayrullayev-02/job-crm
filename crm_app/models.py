@@ -109,16 +109,35 @@ class Subject(models.Model):
 
 
 class Group(models.Model):
-    """Study groups"""
     STATUS_CHOICES = [
         ('Active', 'Active'),
         ('Closed', 'Closed'),
     ]
-    
-    educational_center = models.ForeignKey(EducationalCenter, on_delete=models.CASCADE, related_name='groups')
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='groups')
+
+    educational_center = models.ForeignKey(
+        EducationalCenter,
+        on_delete=models.CASCADE,
+        related_name='groups'
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name='groups'
+    )
+    room = models.ForeignKey(           # 🔥 YANGI QISM
+        'Room',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='groups'
+    )
     name = models.CharField(max_length=255)
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, related_name='groups')
+    subject = models.ForeignKey(
+        Subject,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='groups'
+    )
     teacher = models.ForeignKey(
         'Teacher',
         on_delete=models.SET_NULL,
@@ -132,13 +151,14 @@ class Group(models.Model):
     end_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
-        return f"{self.name} - {self.subject}"
-    
+        return f"{self.name} - {self.room.name if self.room else 'No room'}"
+
     class Meta:
-        ordering = ['-created_at']
         unique_together = ('branch', 'name')
+        ordering = ['-created_at']
+
 
 
 # class Student(models.Model):

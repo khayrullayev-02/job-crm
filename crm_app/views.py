@@ -291,78 +291,111 @@ class SubjectViewSet(viewsets.ModelViewSet):
 
 
 
+# class GroupViewSet(viewsets.ModelViewSet):
+#     """
+#     Director API for managing groups/classes.
+
+#     Authentication: IsAuthenticated
+
+#     ENDPOINTS:
+#     - GET /api/groups/ - List all groups
+#     - POST /api/groups/ - Create new group
+#     - GET /api/groups/{id}/ - Retrieve group
+#     - PUT /api/groups/{id}/ - Update group
+#     - PATCH /api/groups/{id}/ - Partial update
+#     - DELETE /api/groups/{id}/ - Delete group
+#     - GET /api/groups/{id}/statistics/ - Get group statistics
+#     - GET /api/groups/{id}/attendance-report/ - Get attendance report
+#     """
+#     queryset = Group.objects.all()
+#     serializer_class = GroupSerializer
+#     # PRODUCTION: Uncomment line below and comment AllowAny line
+#     # permission_classes = [permissions.IsAuthenticated]
+#     permission_classes = [permissions.AllowAny]
+
+#     def get_queryset(self):
+#         """Filter groups by user's center"""
+#         user = self.request.user
+#         if user.is_authenticated:
+#             try:
+#                 profile = UserProfile.objects.get(user=user)
+#                 if profile.role == 'SuperAdmin':
+#                     return Group.objects.all()
+#                 return Group.objects.filter(educational_center=profile.educational_center)
+#             except UserProfile.DoesNotExist:
+#                 return Group.objects.all()
+#         return Group.objects.all()
+
+#     @action(detail=True, methods=['get'])
+#     def statistics(self, request, pk=None):
+#         """Get group statistics"""
+#         group = self.get_object()
+#         return Response({
+#             'students_count': group.students.count(),
+#             'lessons_count': group.lessons.count(),
+#             'average_attendance': self._calculate_avg_attendance(group),
+#             'payment_status': self._get_payment_status(group)
+#         })
+
+#     @action(detail=True, methods=['get'])
+#     def attendance_report(self, request, pk=None):
+#         """Get attendance report for group"""
+#         group = self.get_object()
+#         attendances = Attendance.objects.filter(lesson__group=group)
+#         return Response({
+#             'total_lessons': group.lessons.count(),
+#             'total_attendances': attendances.count(),
+#             'present_count': attendances.filter(status='Present').count(),
+#             'absent_count': attendances.filter(status='Absent').count(),
+#             'late_count': attendances.filter(status='Late').count(),
+#         })
+
+#     def _calculate_avg_attendance(self, group):
+#         """Calculate average attendance"""
+#         attendances = Attendance.objects.filter(lesson__group=group)
+#         if not attendances.exists():
+#             return 0
+#         present = attendances.filter(status='Present').count()
+#         return (present / attendances.count()) * 100 if attendances.count() > 0 else 0
+
+#     def _get_payment_status(self, group):
+#         """Get payment status for group"""
+#         payments = Payment.objects.filter(group=group)
+#         total = sum(p.amount for p in payments)
+#         return {'total_payments': total, 'payment_count': payments.count()}
+
+
+
+
 class GroupViewSet(viewsets.ModelViewSet):
-    """
-    Director API for managing groups/classes.
-
-    Authentication: IsAuthenticated
-
-    ENDPOINTS:
-    - GET /api/groups/ - List all groups
-    - POST /api/groups/ - Create new group
-    - GET /api/groups/{id}/ - Retrieve group
-    - PUT /api/groups/{id}/ - Update group
-    - PATCH /api/groups/{id}/ - Partial update
-    - DELETE /api/groups/{id}/ - Delete group
-    - GET /api/groups/{id}/statistics/ - Get group statistics
-    - GET /api/groups/{id}/attendance-report/ - Get attendance report
-    """
-    queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    # PRODUCTION: Uncomment line below and comment AllowAny line
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Filter groups by user's center"""
-        user = self.request.user
-        if user.is_authenticated:
-            try:
-                profile = UserProfile.objects.get(user=user)
-                if profile.role == 'SuperAdmin':
-                    return Group.objects.all()
-                return Group.objects.filter(educational_center=profile.educational_center)
-            except UserProfile.DoesNotExist:
-                return Group.objects.all()
-        return Group.objects.all()
+        profile = self.request.user.profile
+        return Group.objects.filter(
+            educational_center=profile.educational_center
+        )
 
-    @action(detail=True, methods=['get'])
-    def statistics(self, request, pk=None):
-        """Get group statistics"""
-        group = self.get_object()
-        return Response({
-            'students_count': group.students.count(),
-            'lessons_count': group.lessons.count(),
-            'average_attendance': self._calculate_avg_attendance(group),
-            'payment_status': self._get_payment_status(group)
-        })
+    def perform_create(self, serializer):
+        profile = self.request.user.profile
+        branch = serializer.validated_data.get('branch')
+        room = serializer.validated_data.get('room')
 
-    @action(detail=True, methods=['get'])
-    def attendance_report(self, request, pk=None):
-        """Get attendance report for group"""
-        group = self.get_object()
-        attendances = Attendance.objects.filter(lesson__group=group)
-        return Response({
-            'total_lessons': group.lessons.count(),
-            'total_attendances': attendances.count(),
-            'present_count': attendances.filter(status='Present').count(),
-            'absent_count': attendances.filter(status='Absent').count(),
-            'late_count': attendances.filter(status='Late').count(),
-        })
+        # ❗ Branch boshqa center bo‘lsa — ruxsat yo‘q
+        if branch.educational_center != profile.educational_center:
+            raise PermissionDenied("Invalid branch")
 
-    def _calculate_avg_attendance(self, group):
-        """Calculate average attendance"""
-        attendances = Attendance.objects.filter(lesson__group=group)
-        if not attendances.exists():
-            return 0
-        present = attendances.filter(status='Present').count()
-        return (present / attendances.count()) * 100 if attendances.count() > 0 else 0
+        # ❗ Room boshqa branchga tegishli bo‘lsa — ruxsat yo‘q
+        if room and room.branch != branch:
+            raise PermissionDenied("Room does not belong to this branch")
 
-    def _get_payment_status(self, group):
-        """Get payment status for group"""
-        payments = Payment.objects.filter(group=group)
-        total = sum(p.amount for p in payments)
-        return {'total_payments': total, 'payment_count': payments.count()}
+        serializer.save(
+            educational_center=profile.educational_center
+        )
+
+
+
 
 
 # class StudentViewSet(viewsets.ModelViewSet):
