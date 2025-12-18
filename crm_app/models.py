@@ -56,7 +56,12 @@ class UserProfile(models.Model):
     educational_center = models.ForeignKey(EducationalCenter, on_delete=models.CASCADE, 
                                           related_name='users', null=True, blank=True)
     phone = models.CharField(max_length=20, blank=True)
-    passport_number = models.CharField(max_length=20, blank=True, unique=True)
+    passport_number = models.CharField(
+    max_length=50,
+    unique=True,
+    null=True,
+    blank=True
+    )
     birthday = models.DateField(null=True, blank=True)
     image = models.ImageField(upload_to='profiles/', null=True, blank=True)
     is_blocked = models.BooleanField(default=False)
@@ -217,7 +222,12 @@ class Student(models.Model):
     # group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='students')
     
-    passport_number = models.CharField(max_length=20, blank=True, unique=True)
+    passport_number = models.CharField(
+    max_length=50,
+    unique=True,
+    null=True,
+    blank=True
+    )
     image = models.ImageField(upload_to='students/', null=True, blank=True)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
@@ -254,7 +264,12 @@ class Teacher(models.Model):
     hire_date = models.DateField(auto_now_add=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     address = models.TextField(blank=True)
-    passport_number = models.CharField(max_length=20, blank=True, unique=True)
+    passport_number = models.CharField(
+    max_length=50,
+    unique=True,
+    null=True,
+    blank=True
+    )
     image = models.ImageField(upload_to='teachers/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
