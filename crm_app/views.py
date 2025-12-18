@@ -223,38 +223,72 @@ class BranchViewSet(viewsets.ModelViewSet):
         return Response({'status': 'Branch closed'})
 
 
+# class SubjectViewSet(viewsets.ModelViewSet):
+#     """
+#     Director API for managing subjects/courses.
+
+#     Authentication: IsAuthenticated
+
+#     ENDPOINTS:
+#     - GET /api/subjects/ - List all subjects
+#     - POST /api/subjects/ - Create new subject
+#     - GET /api/subjects/{id}/ - Retrieve subject
+#     - PUT /api/subjects/{id}/ - Update subject
+#     - PATCH /api/subjects/{id}/ - Partial update
+#     - DELETE /api/subjects/{id}/ - Delete subject
+#     """
+#     queryset = Subject.objects.all()
+#     serializer_class = SubjectSerializer
+#     # PRODUCTION: Uncomment line below and comment AllowAny line
+#     # permission_classes = [permissions.IsAuthenticated]
+#     permission_classes = [permissions.AllowAny]
+
+#     def get_queryset(self):
+#         """Filter subjects by user's center"""
+#         user = self.request.user
+#         if user.is_authenticated:
+#             try:
+#                 profile = UserProfile.objects.get(user=user)
+#                 if profile.role == 'SuperAdmin':
+#                     return Subject.objects.all()
+#                 return Subject.objects.filter(educational_center=profile.educational_center)
+#             except UserProfile.DoesNotExist:
+#                 return Subject.objects.all()
+#         return Subject.objects.all()
+
+
+from rest_framework import viewsets, permissions
+from rest_framework.exceptions import PermissionDenied
+from .models import Subject, Room, Branch
+from .serializers import SubjectSerializer, RoomSerializer
+
 class SubjectViewSet(viewsets.ModelViewSet):
-    """
-    Director API for managing subjects/courses.
-
-    Authentication: IsAuthenticated
-
-    ENDPOINTS:
-    - GET /api/subjects/ - List all subjects
-    - POST /api/subjects/ - Create new subject
-    - GET /api/subjects/{id}/ - Retrieve subject
-    - PUT /api/subjects/{id}/ - Update subject
-    - PATCH /api/subjects/{id}/ - Partial update
-    - DELETE /api/subjects/{id}/ - Delete subject
-    """
-    queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    # PRODUCTION: Uncomment line below and comment AllowAny line
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Filter subjects by user's center"""
         user = self.request.user
-        if user.is_authenticated:
-            try:
-                profile = UserProfile.objects.get(user=user)
-                if profile.role == 'SuperAdmin':
-                    return Subject.objects.all()
-                return Subject.objects.filter(educational_center=profile.educational_center)
-            except UserProfile.DoesNotExist:
-                return Subject.objects.all()
-        return Subject.objects.all()
+
+        try:
+            profile = user.profile
+        except:
+            raise PermissionDenied("User profile not found")
+
+        return Subject.objects.filter(
+            educational_center=profile.educational_center
+        )
+
+    def perform_create(self, serializer):
+        """
+        POST qilganda educational_center avtomatik olinadi
+        """
+        profile = self.request.user.profile
+
+        serializer.save(
+            educational_center=profile.educational_center
+        )
+
+
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -959,57 +993,87 @@ class ExamResultViewSet(viewsets.ModelViewSet):
         return ExamResult.objects.all()
 
 
+# class RoomViewSet(viewsets.ModelViewSet):
+#     """
+#     Director/Manager API for managing rooms/classrooms.
+
+#     Authentication: IsAuthenticated
+
+#     ENDPOINTS:
+#     - GET /api/rooms/ - List all rooms
+#     - POST /api/rooms/ - Create new room
+#     - GET /api/rooms/{id}/ - Retrieve room
+#     - PUT /api/rooms/{id}/ - Update room
+#     - PATCH /api/rooms/{id}/ - Partial update
+#     - DELETE /api/rooms/{id}/ - Delete room
+#     - POST /api/rooms/{id}/occupy/ - Mark room as occupied
+#     - POST /api/rooms/{id}/free/ - Mark room as free
+#     """
+#     queryset = Room.objects.all()
+#     serializer_class = RoomSerializer
+#     # PRODUCTION: Uncomment line below and comment AllowAny line
+#     # permission_classes = [permissions.IsAuthenticated]
+#     permission_classes = [permissions.AllowAny]
+
+#     def get_queryset(self):
+#         """Filter rooms by user's center"""
+#         user = self.request.user
+#         if user.is_authenticated:
+#             try:
+#                 profile = UserProfile.objects.get(user=user)
+#                 if profile.role == 'SuperAdmin':
+#                     return Room.objects.all()
+#                 elif profile.role in ['Director', 'Manager']:
+#                     return Room.objects.filter(branch__educational_center=profile.educational_center)
+#             except UserProfile.DoesNotExist:
+#                 return Room.objects.all()
+#         return Room.objects.all()
+
+#     @action(detail=True, methods=['post'])
+#     def occupy(self, request, pk=None):
+#         """Mark room as occupied"""
+#         room = self.get_object()
+#         room.is_available = False
+#         room.save()
+#         return Response({'status': 'Room occupied'})
+
+#     @action(detail=True, methods=['post'])
+#     def free(self, request, pk=None):
+#         """Mark room as free"""
+#         room = self.get_object()
+#         room.is_available = True
+#         room.save()
+#         return Response({'status': 'Room freed'})
+
+
+
 class RoomViewSet(viewsets.ModelViewSet):
-    """
-    Director/Manager API for managing rooms/classrooms.
-
-    Authentication: IsAuthenticated
-
-    ENDPOINTS:
-    - GET /api/rooms/ - List all rooms
-    - POST /api/rooms/ - Create new room
-    - GET /api/rooms/{id}/ - Retrieve room
-    - PUT /api/rooms/{id}/ - Update room
-    - PATCH /api/rooms/{id}/ - Partial update
-    - DELETE /api/rooms/{id}/ - Delete room
-    - POST /api/rooms/{id}/occupy/ - Mark room as occupied
-    - POST /api/rooms/{id}/free/ - Mark room as free
-    """
-    queryset = Room.objects.all()
     serializer_class = RoomSerializer
-    # PRODUCTION: Uncomment line below and comment AllowAny line
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Filter rooms by user's center"""
         user = self.request.user
-        if user.is_authenticated:
-            try:
-                profile = UserProfile.objects.get(user=user)
-                if profile.role == 'SuperAdmin':
-                    return Room.objects.all()
-                elif profile.role in ['Director', 'Manager']:
-                    return Room.objects.filter(branch__educational_center=profile.educational_center)
-            except UserProfile.DoesNotExist:
-                return Room.objects.all()
-        return Room.objects.all()
+        profile = user.profile
 
-    @action(detail=True, methods=['post'])
-    def occupy(self, request, pk=None):
-        """Mark room as occupied"""
-        room = self.get_object()
-        room.is_available = False
-        room.save()
-        return Response({'status': 'Room occupied'})
+        return Room.objects.filter(
+            branch__educational_center=profile.educational_center
+        )
 
-    @action(detail=True, methods=['post'])
-    def free(self, request, pk=None):
-        """Mark room as free"""
-        room = self.get_object()
-        room.is_available = True
-        room.save()
-        return Response({'status': 'Room freed'})
+    def perform_create(self, serializer):
+        """
+        Branch tekshiriladi — boshqa markazniki bo‘lsa, ruxsat yo‘q
+        """
+        profile = self.request.user.profile
+        branch = serializer.validated_data.get('branch')
+
+        if branch.educational_center != profile.educational_center:
+            raise PermissionDenied("You cannot add room to another center")
+
+        serializer.save()
+
+
+
+
 
 
 class PayrollViewSet(viewsets.ModelViewSet):
